@@ -9,7 +9,7 @@ use Nette\Utils\Strings;
 
 class Gettext extends Nette\Object implements Nette\Localization\ITranslator
 {
-	/** @var FileManager */
+	/** @inject @var FileManager */
 	public $fileManager;
 
 	/* @var string */
@@ -43,12 +43,12 @@ class Gettext extends Nette\Object implements Nette\Localization\ITranslator
 	private $httpResponse;
 
 
-	public function __construct(Nette\Http\Session $session, Nette\Caching\IStorage $cacheStorage, Nette\Http\Response $httpResponse, FileManager $fileManager)
+	public function __construct(Nette\Http\Session $session, Nette\Caching\IStorage $cacheStorage, Nette\Http\Response $httpResponse)
 	{
 		$this->sessionStorage = $sessionStorage = $session->getSection(self::$namespace);
-		$this->cache = new Nette\Caching\Cache(new Nette\Caching\Storages\DevNullStorage(), self::$namespace);
+		$this->cache = new Nette\Caching\Cache($cacheStorage, self::$namespace);
 		$this->httpResponse = $httpResponse;
-		$this->fileManager = $fileManager;
+		$this->fileManager = new FileManager();
 		/*
 		if (!isset($sessionStorage->newStrings) || !is_array($sessionStorage->newStrings)) {
 			$sessionStorage->newStrings = array();
@@ -148,7 +148,6 @@ class Gettext extends Nette\Object implements Nette\Localization\ITranslator
 
 		} elseif (is_numeric($form)) {
 			$form = (int) $form;
-			
 			if($form < 2) {
 				$message_plural = 0;
 			} elseif($form < 5) {
@@ -161,12 +160,7 @@ class Gettext extends Nette\Object implements Nette\Localization\ITranslator
 			$form = 1;
 		}
 
-		if (!empty($message)
-				&& isset($this->dictionary[$message])
-				&& isset($this->dictionary[$message]['file'])
-				&& isset($this->metadata[$this->dictionary[$message]['file']])
-				&& isset($this->metadata[$this->dictionary[$message]['file']]['Plural-Forms'])
-		) {
+		if (!empty($message) && isset($this->dictionary[$message])) {
 			$tmp = preg_replace('/([a-z]+)/', '$$1', "n=$form;" . $this->metadata[$this->dictionary[$message]['file']]['Plural-Forms']);
 			eval($tmp);
 
