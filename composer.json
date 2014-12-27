@@ -1,6 +1,6 @@
 {
-	"name": "positivezero/gettext-translator",
-	"description": "Translator for Nette (PHP framework).",
+	"name": "klimesf/gettext-translator",
+	"description": "Translator for Nette (PHP framework), fork of positivezero/gettext-translator for personal purposes.",
 	"keywords": ["nette", "translator", "gettext"],
 	"homepage": "https://github.com/positivezero/gettext-translator",
 	"license": ["BSD-3-Clause"],
@@ -16,6 +16,10 @@
         {
             "name": "Vojtěch Kijenský",
             "homepage": "http://www.positivezero.co.uk"
+        },
+        {
+            "name": "Filip Klimeš",
+            "homepage": "http://www.filipklimes.ct"
         }
 	],
 	"autoload": {
