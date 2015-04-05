@@ -21,6 +21,9 @@ class Gettext extends Nette\Object implements Nette\Localization\ITranslator
 	/** @var string */
 	protected $lang;
 
+	/** @var Nette\Http\Session */
+	protected $session;
+
 	/** @var array */
 	private $dictionary = array();
 
@@ -42,10 +45,12 @@ class Gettext extends Nette\Object implements Nette\Localization\ITranslator
 	/** @var Nette\Http\Response */
 	private $httpResponse;
 
+	/** @var boolean */
+	private $debugMode = false;
 
 	public function __construct(Nette\Http\Session $session, Nette\Caching\IStorage $cacheStorage, Nette\Http\Response $httpResponse)
 	{
-		$this->sessionStorage = $sessionStorage = $session->getSection(self::$namespace);
+		$this->session = $session;
 		$this->cache = new Nette\Caching\Cache($cacheStorage, self::$namespace);
 		$this->httpResponse = $httpResponse;
 		$this->fileManager = new FileManager();
@@ -56,6 +61,14 @@ class Gettext extends Nette\Object implements Nette\Localization\ITranslator
 		*/
 	}
 
+
+	public function setDebugMode($debugMode)
+	{
+		$this->debugMode = $debugMode;
+		if($debugMode === true) {
+			$this->sessionStorage = $this->session->getSection(self::$namespace);
+		}
+	}
 
 	/**
 	 * Add file to parse
@@ -170,7 +183,7 @@ class Gettext extends Nette\Object implements Nette\Localization\ITranslator
 			}
 
 		} else {
-			if (!$this->httpResponse->isSent() || $this->sessionStorage) {
+			if ($this->debugMode === true && (!$this->httpResponse->isSent() || $this->sessionStorage)) {
 				if (!isset($this->sessionStorage->newStrings[$this->lang])) {
 					$this->sessionStorage->newStrings[$this->lang] = array();
 				}
@@ -236,7 +249,7 @@ class Gettext extends Nette\Object implements Nette\Localization\ITranslator
 		$newStrings = array();
 		$result = array();
 
-		if (isset($this->sessionStorage->newStrings[$this->lang])) {
+		if ($this->debugMode === true && isset($this->sessionStorage->newStrings[$this->lang])) {
 			foreach (array_keys($this->sessionStorage->newStrings[$this->lang]) as $original) {
 				if (trim($original) != '') {
 					$newStrings[$original] = FALSE;
@@ -291,7 +304,7 @@ class Gettext extends Nette\Object implements Nette\Localization\ITranslator
 	{
 		$this->loadDictonary();
 
-		if (isset($this->sessionStorage->newStrings[$this->lang]) && array_key_exists($message, $this->sessionStorage->newStrings[$this->lang])) {
+		if ($this->debugMode === true && isset($this->sessionStorage->newStrings[$this->lang]) && array_key_exists($message, $this->sessionStorage->newStrings[$this->lang])) {
 			$message = $this->sessionStorage->newStrings[$this->lang][$message];
 		}
 
@@ -320,12 +333,14 @@ class Gettext extends Nette\Object implements Nette\Localization\ITranslator
 		$path = "$dir/$this->lang.$file";
 
 		$metadata = $this->fileManager->generateMetadata($file, $this->metadata);
-		$newStrings = isset($this->sessionStorage->newStrings[$this->lang]) ? $this->sessionStorage->newStrings[$this->lang] : array();
+		$newStrings = $this->debugMode === true && isset($this->sessionStorage->newStrings[$this->lang])
+			? $this->sessionStorage->newStrings[$this->lang]
+			: array();
 
 		$this->fileManager->buildMOFile("$path.mo", $file, $metadata, $this->dictionary);
 		$this->fileManager->buildPOFile("$path.po", $file, $metadata, $this->dictionary, $newStrings);
 
-		if (isset($this->sessionStorage->newStrings[$this->lang])) {
+		if ($this->debugMode === true && isset($this->sessionStorage->newStrings[$this->lang])) {
 			unset($this->sessionStorage->newStrings[$this->lang]);
 		}
 
