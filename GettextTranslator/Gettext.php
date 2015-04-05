@@ -62,6 +62,10 @@ class Gettext extends Nette\Object implements Nette\Localization\ITranslator
 	}
 
 
+	/**
+	 * Sets debug mode.
+	 * @param boolean $debugMode
+	 */
 	public function setDebugMode($debugMode)
 	{
 		$this->debugMode = $debugMode;
