@@ -7,6 +7,7 @@ use Nette;
 
 class Panel extends Nette\Object implements Nette\Diagnostics\IBarPanel
 {
+
 	/** @var string */
 	private $xhrHeader = 'X-Translation-Client';
 
@@ -34,6 +35,12 @@ class Panel extends Nette\Object implements Nette\Diagnostics\IBarPanel
 	/** @var Nette\Http\Request */
 	private $httpRequest;
 
+	/** @var Nette\Http\Session */
+	private $session;
+
+	/** @var boolean */
+	private $debugMode;
+
 
 	/**
 	 * @param Nette\Application\Application
@@ -47,12 +54,25 @@ class Panel extends Nette\Object implements Nette\Diagnostics\IBarPanel
 	{
 		$this->application = $application;
 		$this->translator = $translator;
-		$this->sessionStorage = $session->getSection(Gettext::$namespace);
 		$this->httpRequest = $httpRequest;
 		$this->height = $height;
 		$this->layout = $layout;
+		$this->session = $session;
 
 		$this->processRequest();
+	}
+
+
+	/**
+	 * Sets debug mode.
+	 * @param boolean $debugMode
+	 */
+	public function setDebugMode($debugMode)
+	{
+		$this->debugMode = $debugMode;
+		if ($debugMode === true) {
+			$this->sessionStorage = $this->session->getSection(Gettext::$namespace);
+		}
 	}
 
 
@@ -88,13 +108,19 @@ class Panel extends Nette\Object implements Nette\Diagnostics\IBarPanel
 		$activeFile = $this->getActiveFile($files);
 
 		$strings = $this->translator->getStrings();
-		$untranslatedStack = isset($this->sessionStorage['stack']) ? $this->sessionStorage['stack'] : array();
+		$untranslatedStack = $this->debugMode === true && isset($this->sessionStorage['stack'])
+			? $this->sessionStorage['stack']
+			: array();
+
 		foreach ($strings as $string => $data) {
 			if (!$data) {
 				$untranslatedStack[$string] = FALSE;
 			}
 		}
-		$this->sessionStorage['stack'] = $untranslatedStack;
+
+		if($this->debugMode === true) {
+			$this->sessionStorage['stack'] = $untranslatedStack;
+		}
 
 		foreach ($untranslatedStack as $string => $value) {
 			if (!isset($strings[$string])) {
@@ -119,7 +145,7 @@ class Panel extends Nette\Object implements Nette\Diagnostics\IBarPanel
 			$data = json_decode(file_get_contents('php://input'));
 
 			if ($data) {
-				if ($this->sessionStorage) {
+				if ($this->debugMode === true && $this->sessionStorage) {
 					$stack = isset($this->sessionStorage['stack']) ? $this->sessionStorage['stack'] : array();
 				}
 
@@ -129,13 +155,13 @@ class Panel extends Nette\Object implements Nette\Diagnostics\IBarPanel
 
 				foreach ($data as $string => $value) {
 					$this->translator->setTranslation($string, $value, $file);
-					if ($this->sessionStorage && isset($stack[$string])) {
+					if ($this->debugMode === true && $this->sessionStorage && isset($stack[$string])) {
 						unset($stack[$string]);
 					}
 				}
 				$this->translator->save($file);
 
-				if ($this->sessionStorage) {
+				if ($this->debugMode === true && $this->sessionStorage) {
 					$this->sessionStorage['stack'] = $stack;
 				}
 			}
